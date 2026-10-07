@@ -1,4 +1,4 @@
-# CloudNation – Consultant Assessment - Assignment Response
+# CloudNation – Assessment Response
 This repository contains my response to the [assessment assignment](https://github.com/CloudNationHQ/cn-recruitment-assessment) from CloudNation.
 
 ## Table of contents 
