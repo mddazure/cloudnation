@@ -1,6 +1,6 @@
 # Novabank
 
-Novabank intends to move their IT estate from an onpremise data center to public cloud. As a first step, to evaluate both the public cloud as a hosting platform and Cloudnation as a cloud partner, they have asked Cloudnation to migrate a web API. 
+Novabank intends to move their IT estate from an onpremise data center to public cloud. As a first step, to evaluate both the public cloud as a hosting platform and CloudNation as a cloud partner, they have asked CloudNation to migrate a web API. 
 
 This repository contains the architecture, design and proof-of-concept deployment of this API application.
 
