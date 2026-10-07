@@ -7,9 +7,9 @@ This repository contains the architecture, design and proof-of-concept deploymen
 ## Current situation - Discover
 The application curently consists of a web API application on a single VM and a PostgreSQL database, in Novabank's onpremise data center. 
 
-Novabank operates under financial services industry regulations, and one of the constraints imposed is that data must reside within the EU. This constraint is implicitly complied with today through the physical location of the data center.
+Novabank operates under financial services industry regulations, and one of the constraints imposed is that data must reside within the EU. This constraint is implicitly met today through the physical location of the data center.
 
-There is an  expectation with regards to availability of the API, but the current implementation has not been designed or evaluated against an explicit availability target.
+There is an  expectation with regards to availability of the API, but the current implementation has not been designed for or evaluated against an explicit availability target.
 
 There is no separate implementation for development and testing, this takes place on the same environment that production runs on. 
 
@@ -32,7 +32,7 @@ The API application is implemented as a container running on a Web App, and the 
 
  Azure App Service and Azure Database for PostgreSQL Flexible Server reduce operational overhead, improve security posture, and provide built-in high availability features compared to self-managed virtual machine deployments. This aligns with CAF modernization guidance and Azure's recommendation to use managed platform services to allow teams to focus on application delivery rather than infrastructure management.
 ### Solution design
-The primary Azure region this deployment is West Europe, with Disaster Recovery in North Europe.
+The Primary Azure region this deployment is West Europe, with Disaster Recovery in North Europe.
 
 #### Primary
 The Web App and the database connect privately through a VNET. The PostgreSQL Flexible Server is VNET injected, meaning that it has no public (internet facing) endpoint and can only be reached from within the VNET.  
@@ -68,7 +68,7 @@ Activity Logs (Azure platform logs) are kept by the platform for 90 days by defa
 Log Analytics Wokspaces are configured to only permit access to the logs by members of a specific Entra ID Security Group which has the `logAnalyticsDataReaders` RBAC role assigned. 
 
 #### Security considerations
-Lack of a public endpoint helps secure the database, but should not be relied on as the only security measure. Access from the web applicatiom to the database should be authenticated through Entra authentication, although this is currently not part of the proof of concept implementation.
+Lack of a public endpoint helps secure the database, but should not be relied on as the only security measure. Access from the web application to the database should be authenticated through Entra authentication, although this is currently not part of the proof of concept implementation.
 
 #### Requirements matrix
 
@@ -76,7 +76,7 @@ Lack of a public endpoint helps secure the database, but should not be relied on
 |-------------|-----------------|----------|
 | Data residency in EU | Deploy to region pair West Europe (primary) and North Europe (dr) | PostgreSQL Geo Redundant backup retains data in paired regions|
 | Availability: 99.90% | Target architecture: 99.98% |HA configuration not required|
-| Disaster Recovery RPO < 1 hr, RTO <4 hrs | Target architecture achieves RTO and RPO of minutes | Use of TM avoinds DNS complexities in a disaster situation|
+| Disaster Recovery RPO < 1 hr, RTO <4 hrs | Target architecture achieves RTO and RPO of minutes | Use of TM avoids DNS complexities in a disaster situation|
 | Auditability | All logs written to Log Analytics Workspaces with retention of 2 years and access to logs restricted through Entra Group | Restricted to members of an Entra Security Group with the `logAnalyticsDataReaders` RBAC role 
 
 ## Proof of concept - Develop, Deploy
@@ -89,6 +89,8 @@ Traffic Manager is deployed with a custom domain name set to the `customDomainNa
 To avoid complexities with certificates for the custom domain, the primary and dr Web Apps are set to permit non-TLS (http://) connections for this proof of concept. A production deployment should be configured to permit only secured connections, requiring a certificate for the custom domain to be installed on the Web Apps.
 
 The dev deployment ommits Traffic Manager and is reachable on the Web Apps direct fqdn.
+
+NB: The current implementation deploys the Web App and PostgreSQL server in non-zonal (same-zone) redundant mode, because of quota restrictions on the current subscription.
 
 ## Demonstration
 The endpoints offered by the API are documented [here](https://github.com/microsoft/YADA/tree/main/api).

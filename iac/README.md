@@ -10,7 +10,7 @@ The production primary and development PostgreSQL servers use the PostgreSQL AVM
 | `prod` | `dr` | North Europe | `novabank-prod-dr` | Geo-restore from `novabank-prod/novabank-pg`, same-zone HA | `P0v3`, one instance, non-zone-redundant | Priority 2 |
 | `dev` | Any value | West Europe | `novabank-dev` | `Standard_B1ms`, no HA or geo backup | `B1`, one instance | Not deployed |
 
-Production uses the shared HTTP hostname `novabank.dedroog.net`, routed through `novabank-dedroog.trafficmanager.net`. Traffic Manager uses priority routing and probes `/api/healthcheck` over HTTP. Both production Web Apps have `httpsOnly` disabled and no TLS certificate binding. Development remains HTTPS-only on its default App Service hostname. Azure Front Door is not deployed.
+Production uses the shared HTTP hostname `novabank.dedroog.net`, routed through `novabank-dedroog.trafficmanager.net`. Traffic Manager uses priority routing and probes `/api/healthcheck` over HTTP. Both production Web Apps have `httpsOnly` disabled and no TLS certificate binding. Development remains HTTPS-only on its default App Service hostname.
 
 The production resilience settings use deployable fallbacks for the current subscription: PostgreSQL keeps geo-redundant backup and DR support with same-zone HA, while the P0v3 App Service plan uses one non-zone-redundant instance in each production region.
 
