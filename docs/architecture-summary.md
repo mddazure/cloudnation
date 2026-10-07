@@ -26,7 +26,7 @@ For the migration to public cloud, requirements are stated explicitly:
 ### Cloud platform
 The public cloud platform for this proof of concept will be Azure, driven by skills available in the project team. Deployment to Azure meets the stated requirements, as is demonstrated here, but other clouds may be equally suitable and can be evaluated at a later stage.
 ### Service selection
-The architecture follows Microsoft Cloud Adoption Framework (CAF) principles by preferring managed platform services over infrastructure services, if  they satisfy the functional and non-functional requirements.
+The architecture follows Microsoft's Cloud Adoption Framework (CAF) principles by preferring managed platform services over infrastructure services, if  they satisfy the functional and non-functional requirements.
 
 The API application is implemented as a container running on a Web App, and the database runs on PostgreSQL Flexible Server. 
 
@@ -35,7 +35,9 @@ The API application is implemented as a container running on a Web App, and the 
 The primary Azure region this deployment is West Europe, with Disaster Recovery in North Europe.
 
 #### Primary
-The Web App and the database connect privately through a VNET. The PostgreSQL Flexible Server is VNET injected, meaning that it has no public (internet facing) endpoint and can only be reached from within the VNET. The Web App uses VNET integration for outbound connectivity through the VNET to the database.
+The Web App and the database connect privately through a VNET. The PostgreSQL Flexible Server is VNET injected, meaning that it has no public (internet facing) endpoint and can only be reached from within the VNET.  
+
+The Web App uses VNET integration for outbound connectivity through the VNET to the database.
 
 Both the Web App and the PostgreSQL Flexible Server are deployed in zonal redundant mode, giving each an availability target of 99.99% per Microsoft's [Service Level Agreement for 
 Microsoft Online Services](https://www.microsoft.com/licensing/docs/view/Service-Level-Agreements-SLA-for-Online-Services?lang=1+). 
@@ -63,13 +65,25 @@ Activity Logs (Azure platform logs) are kept by the platform for 90 days by defa
 
 Log Analytics Wokspaces are configured to only permit access to the logs by members of a specific Entra ID Security Group which has the `logAnalyticsDataReaders` RBAC role assigned. 
 
+#### Security considerations
+Lack of a public endpoint helps secure the database, but should not be relied on as the only security measure. Access from the web applicatiom to the database should be authenticated through Entra authentication, although this is currently not part of the proof of concept implementation.
+
 #### Requirements matrix
 
 | Requirement | Met through | Comments |
-|-------------|-------------|----------|
+|-------------|-----------------|----------|
 | Data residency in EU | Deploy to region pair West Europe (primary) and North Europe (dr) | PostgreSQL Geo Redundant backup retains data in paired regions|
 | Availability: 99.90% | Target architecture: 99.98% |HA configuration not required|
 | Disaster Recovery RPO < 1 hr, RTO <4 hrs | Target architecture achieves RTO and RPO of minutes | Use of TM avoinds DNS complexities in a disaster situation|
 | Auditability | All logs written to Log Analytics Workspaces with retention of 2 years and access to logs restricted through Entra Group | Restricted to members of an Entra Security Group with the `logAnalyticsDataReaders` RBAC role 
 
-## Proof of concept - Develop
+## Proof of concept - Develop, Deploy
+The entire solution is deployable as code, through bicep templates contained in the [iac](/iac/) folder. The code leverages Azure Verified Modules where possible. A separate [README.md](/iac/README.md) document describes the implementation.
+
+The web API application for this proof of concept is the API component of the [YADA demo application](/https://github.com/microsoft/YADA/tree/main). The API application is containerized and installed during deployment of the Web App. The deployment also sets the Web Apps environment variables.
+
+Traffic Manager is deployed with a custom domain name set to the `customDomainName` parameter in the bicep parameters file. This custom domain is also set on the primary and dr Web Apps. Instructions on how to verify the custom domain name are included in README.md.
+
+To avoid complexities with certificates for the custom domain, the primary and dr Web Apps are set to permit non-TLS (http://) connections for this proof of concept. A production deployment should be configured to permit only secured connections, requiring a certificate for the custom domain to be installed on the Web Apps.
+
+The dev deployment ommits Traffic Manager and is reachable on the Web Apps direct fqdn.
