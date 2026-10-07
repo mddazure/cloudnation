@@ -56,12 +56,14 @@ Traffic Manager is used to steer user traffic to the active instance of the appl
 ![image](/docs/novabank-dr.png)
 
 #### Development
-A separate development deployment template is available - this uses lower grade and cheaper service SKU's and does not inlcude Traffic Manager. The development environment is completely separate from production.
+A separate deployment for a Development environment is available - this uses lower grade and cheaper service SKU's and does not include Traffic Manager. 
+
+The Development environment is completely separate from production.
 
 #### Logging
 Resource Logs are written to Log Analytics Workspaces (one per environment - primary, dr, dev). This is set in Diagnostic Settings for each resoource.
 
-Activity Logs (Azure platform logs) are kept by the platform for 90 days by default, and can be exported to a Log Analytics Workspace for longer retention.
+Activity Logs (Azure platform logs) are kept by the platform for 90 days by default. For longer retention and querying with KQP, these are exported to a Log Analytics Workspace through Diagnostic setting at the Subscription level.
 
 Log Analytics Wokspaces are configured to only permit access to the logs by members of a specific Entra ID Security Group which has the `logAnalyticsDataReaders` RBAC role assigned. 
 
@@ -87,3 +89,47 @@ Traffic Manager is deployed with a custom domain name set to the `customDomainNa
 To avoid complexities with certificates for the custom domain, the primary and dr Web Apps are set to permit non-TLS (http://) connections for this proof of concept. A production deployment should be configured to permit only secured connections, requiring a certificate for the custom domain to be installed on the Web Apps.
 
 The dev deployment ommits Traffic Manager and is reachable on the Web Apps direct fqdn.
+
+## Demonstration
+The endpoints offered by the API are documented [here](https://github.com/microsoft/YADA/tree/main/api).
+
+The API application can query the PostgreSQL server for version information and the ip address of the calling client.
+
+Version query:
+
+`http://novabank.dedroog.net/api/sqlsrcip`
+
+```
+{
+  "sql_output": "10.0.2.254"
+}
+```
+
+IP address query
+`http://novabank.dedroog.net/api/sqlversion`
+```
+{
+  "sql_output": "PostgreSQL 16.15 on x86_64-pc-linux-gnu, compiled by gcc (GCC) 13.2.0, 64-bit"
+}
+```
+
+The API can also create a new table in the database, to log the client ip addresses and time stamps of client calls:
+
+`http://novabank.dedroog.net//api/sqlsrcipinit`
+
+```
+{
+  "table_created": "srciplog"
+}
+```
+`https://novabank.dedroog.net//api/sqlsrciplog`
+```
+{
+  "srciplog": {
+    "ip": "10.0.2.254",
+    "timestamp": "2026-10-07 11:24:09.491750"
+  }
+}
+```
+This demonstrates that the API can reach the database server and can read and write from / to the database.
+
