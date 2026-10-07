@@ -51,7 +51,7 @@ PostgreSQL Flexible Server is configured for Geo-Redundant backup redundancy. Th
 
 The DR environment is only deployed through code when the primary has failed, there are no are no permanently deployed components. Deployment takes approximately 10 minutes, well within the RTO requirement of 4 hours.
 
-Traffic Manager is used to steer user traffic to the active instance of the application. TM polls the fqdn's of both the primary and dr instances and directs users to the healthy instance automatically. This avoids the need for DNS manipulation is a disaster situation.
+Traffic Manager is used to steer user traffic to the active instance of the application. TM polls the fqdn's of both the primary and dr instances and directs users to the live (primary- or dr-) instance automatically. This avoids the need for DNS manipulation in a disaster situation.
 
 ![image](/docs/novabank-dr.png)
 
