@@ -33,6 +33,17 @@ param customDomainName string
 @description('Bind the production custom hostname after its DNS ownership records have been configured.')
 param enableCustomDomainBinding bool
 
+type logAnalyticsDataReaderType = {
+  @description('Microsoft Entra object ID of the authorized principal.')
+  principalId: string
+
+  @description('Type of Microsoft Entra principal.')
+  principalType: 'User' | 'Group' | 'ServicePrincipal'
+}
+
+@description('Principals granted the Log Analytics Data Reader role on the deployed workspace.')
+param logAnalyticsDataReaders logAnalyticsDataReaderType[] = []
+
 @description('Tags applied to supported resources.')
 param tags object
 
@@ -48,24 +59,63 @@ var logAnalyticsWorkspaceName = 'novabank${nameSuffix}-laws'
 var postgresSkuName = isDev ? 'Standard_B1ms' : 'Standard_D4ads_v5'
 var postgresTier = isDev ? 'Burstable' : 'GeneralPurpose'
 var appServiceSkuName = isDev ? 'B1' : 'P0v3'
+var logAnalyticsDataReaderRoleDefinitionId = subscriptionResourceId(
+  'Microsoft.Authorization/roleDefinitions',
+  '3b03c2da-16b3-4a49-8834-0f8130efdd3b'
+)
 
-module logAnalyticsWorkspace 'br/public:avm/res/operational-insights/workspace:0.16.1' = {
-  name: 'novabank-log-analytics'
-  params: {
-    name: logAnalyticsWorkspaceName
-    location: location
-    skuName: 'PerGB2018'
-    dataRetention: 730
+resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2025-02-01' = {
+  name: logAnalyticsWorkspaceName
+  location: location
+  properties: {
+    features: {
+      dataAuthorizationMode: true
+      disableLocalAuth: true
+      enableLogAccessUsingOnlyResourcePermissions: false
+      searchVersion: 1
+    }
     forceCmkForQuery: false
-    diagnosticSettings: [
+    publicNetworkAccessForIngestion: 'Enabled'
+    publicNetworkAccessForQuery: 'Enabled'
+    retentionInDays: 730
+    sku: {
+      name: 'PerGB2018'
+    }
+  }
+  tags: tags
+}
+
+resource logAnalyticsWorkspaceDiagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+  name: 'send-all-supported-to-self'
+  scope: logAnalyticsWorkspace
+  properties: {
+    workspaceId: logAnalyticsWorkspace.id
+    logs: [
       {
-        name: 'send-all-supported-to-self'
-        useThisWorkspace: true
+        categoryGroup: 'allLogs'
+        enabled: true
       }
     ]
-    tags: tags
+    metrics: [
+      {
+        category: 'AllMetrics'
+        enabled: true
+      }
+    ]
   }
 }
+
+resource logAnalyticsDataReaderRoleAssignments 'Microsoft.Authorization/roleAssignments@2022-04-01' = [
+  for reader in logAnalyticsDataReaders: {
+    name: guid(logAnalyticsWorkspace.id, reader.principalId, logAnalyticsDataReaderRoleDefinitionId)
+    scope: logAnalyticsWorkspace
+    properties: {
+      principalId: reader.principalId
+      principalType: reader.principalType
+      roleDefinitionId: logAnalyticsDataReaderRoleDefinitionId
+    }
+  }
+]
 
 module virtualNetwork 'br/public:avm/res/network/virtual-network:0.10.2' = {
   name: 'novabank-virtual-network'
@@ -139,7 +189,7 @@ module postgres 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.16.1' = 
     diagnosticSettings: [
       {
         name: 'send-all-supported'
-        workspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
+        workspaceResourceId: logAnalyticsWorkspace.id
       }
     ]
     tags: tags
@@ -188,7 +238,7 @@ resource postgresDrDiagnosticSettings 'Microsoft.Insights/diagnosticSettings@202
   name: 'send-all-supported'
   scope: postgresDr
   properties: {
-    workspaceId: logAnalyticsWorkspace.outputs.resourceId
+    workspaceId: logAnalyticsWorkspace.id
     logs: [
       {
         categoryGroup: 'allLogs'
@@ -217,7 +267,7 @@ module appServicePlan 'br/public:avm/res/web/serverfarm:0.7.0' = {
     diagnosticSettings: [
       {
         name: 'send-all-supported'
-        workspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
+        workspaceResourceId: logAnalyticsWorkspace.id
       }
     ]
     tags: tags
@@ -270,7 +320,7 @@ module webApp 'br/public:avm/res/web/site:0.24.0' = {
     diagnosticSettings: [
       {
         name: 'send-all-supported'
-        workspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
+        workspaceResourceId: logAnalyticsWorkspace.id
       }
     ]
     tags: tags

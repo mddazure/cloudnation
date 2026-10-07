@@ -27,6 +27,17 @@ param trafficManagerRelativeDnsName string = 'novabank-dedroog'
 @description('Bind the production custom hostname after its DNS ownership records have been configured.')
 param enableCustomDomainBinding bool = false
 
+type logAnalyticsDataReaderType = {
+  @description('Microsoft Entra object ID of the authorized principal.')
+  principalId: string
+
+  @description('Type of Microsoft Entra principal.')
+  principalType: 'User' | 'Group' | 'ServicePrincipal'
+}
+
+@description('Principals granted the Log Analytics Data Reader role on the deployed workspace.')
+param logAnalyticsDataReaders logAnalyticsDataReaderType[] = []
+
 var effectiveDeploymentMode = environmentMode == 'dev' ? 'primary' : deploymentMode
 var location = effectiveDeploymentMode == 'dr' ? 'northeurope' : 'westeurope'
 var resourceGroupName = environmentMode == 'dev'
@@ -64,6 +75,7 @@ module workload './modules/workload.bicep' = {
     postgresAdministratorPassword: postgresAdministratorPassword
     customDomainName: customDomainName
     enableCustomDomainBinding: enableCustomDomainBinding
+    logAnalyticsDataReaders: logAnalyticsDataReaders
     tags: tags
   }
   dependsOn: [

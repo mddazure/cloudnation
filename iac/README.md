@@ -1,8 +1,8 @@
 # NovaBank infrastructure
 
-This scaffold uses pinned [Azure Verified Modules](https://azure.github.io/Azure-Verified-Modules/) and supports production primary, production disaster recovery, and development deployments.
+This scaffold uses pinned [Azure Verified Modules](https://azure.github.io/Azure-Verified-Modules/) where they support the required resource properties. It supports production primary, production disaster recovery, and development deployments.
 
-The production primary and development PostgreSQL servers use the PostgreSQL AVM. The DR server uses the native `Microsoft.DBforPostgreSQL/flexibleServers` resource because AVM `0.16.1` currently omits the required `sourceServerResourceId` and `pointInTimeUTC` properties when `createMode` is `GeoRestore`.
+The production primary and development PostgreSQL servers use the PostgreSQL AVM. The DR server uses the native `Microsoft.DBforPostgreSQL/flexibleServers` resource because AVM `0.16.1` currently omits the required `sourceServerResourceId` and `pointInTimeUTC` properties when `createMode` is `GeoRestore`. Log Analytics uses a native resource because the workspace AVM doesn't expose the required `DataActionsOnly` authorization mode.
 
 | `environmentMode` | `deploymentMode` | Region | Resource group | PostgreSQL | App Service | Traffic Manager |
 |---|---|---|---|---|---|---|
@@ -21,6 +21,38 @@ The production resilience settings use deployable fallbacks for the current subs
 - The production primary PostgreSQL server must exist with healthy geo-redundant backups before a DR deployment.
 - Globally unique availability of the selected Web App names.
 - DNS control for `dedroog.net`.
+- Microsoft Entra object IDs for the users, groups, or service principals that can query logs.
+- `Microsoft.Authorization/roleAssignments/write` permission when deploying Log Analytics Data Reader assignments.
+
+## Restrict access to logs
+
+Each Log Analytics workspace uses these controls:
+
+- `enableLogAccessUsingOnlyResourcePermissions: false` requires workspace permissions instead of granting access through monitored resources.
+- `dataAuthorizationMode: true` enables Data Actions Only and prevents control-plane roles such as Owner, Contributor, Reader, and Log Analytics Reader from querying log data.
+- `disableLocalAuth: true` disables shared-key authentication.
+- Only principals assigned **Log Analytics Data Reader** can query logs.
+
+Configure authorized principals in `main.prod.bicepparam`:
+
+```bicep
+param logAnalyticsDataReaders = [
+  {
+    principalId: '<entra-user-or-group-object-id>'
+    principalType: 'Group'
+  }
+]
+```
+
+Supported principal types are `User`, `Group`, and `ServicePrincipal`. Prefer an Entra security group instead of assigning individual users. The same list is applied to the workspace deployed for each environment.
+
+The role assignment uses the built-in **Log Analytics Data Reader** role:
+
+```text
+3b03c2da-16b3-4a49-8834-0f8130efdd3b
+```
+
+A subscription Owner doesn't receive data-plane log access automatically under `DataActionsOnly`. However, an Owner can change the workspace configuration or grant themselves a data-reader role. Use separate administrative identities, Microsoft Entra Privileged Identity Management, approval, and auditing if you must control that administrative path.
 
 ## Validate the template
 
