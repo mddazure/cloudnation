@@ -7,4 +7,4 @@ This repository contains my response to the [assessment assignment](https://gith
 
 [Infrastructure as Code deployment](/iac/README.md)
 
-[Presentation](/slides/novabank.pptx)
+[Presentation](/slides/novabank.pdf)
