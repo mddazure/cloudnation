@@ -82,7 +82,7 @@ Lack of a public endpoint helps secure the database, but should not be relied on
 ## Proof of concept - Develop, Deploy
 The entire solution is deployable as code, through bicep templates contained in the [iac](/iac/) folder. The code leverages Azure Verified Modules where possible. A separate [README.md](/iac/README.md) document describes the implementation.
 
-The web API application for this proof of concept is the API component of the [YADA demo application](/https://github.com/microsoft/YADA/tree/main). The API application is containerized and installed during deployment of the Web App. The deployment also sets the Web Apps environment variables.
+The web API application for this proof of concept is the API component of the [YADA demo application](https://github.com/microsoft/YADA/tree/main). The API application is containerized and installed during deployment of the Web App. The deployment also sets the Web Apps environment variables.
 
 Traffic Manager is deployed with a custom domain name set to the `customDomainName` parameter in the bicep parameters file. This custom domain is also set on the primary and dr Web Apps. Instructions on how to verify the custom domain name are included in README.md.
 
